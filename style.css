@@ -312,7 +312,7 @@ a {
   font-size: 0.75rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: var(--fg);
   margin-bottom: 1.5rem;
   opacity: 0;
   animation: fadeUp 0.8s ease 0.3s forwards;

@@ -56,8 +56,11 @@ const carouselTrack = document.querySelector('.carousel-track');
 const carouselCards = document.querySelectorAll('.carousel-card');
 const prevCarouselBtn = document.querySelector('.carousel-control.prev');
 const nextCarouselBtn = document.querySelector('.carousel-control.next');
+const carouselSlides = document.querySelector('.carousel-slides');
 let carouselIndex = 0;
 let carouselTimer;
+let touchStartX = 0;
+let touchEndX = 0;
 
 function updateCarousel() {
   if (!carouselTrack) return;
@@ -79,10 +82,44 @@ function startCarouselTimer() {
   carouselTimer = setInterval(nextCarousel, 5000);
 }
 
+function stopCarouselTimer() {
+  clearInterval(carouselTimer);
+}
+
+function handleTouchStart(e) {
+  touchStartX = e.changedTouches[0].screenX;
+  stopCarouselTimer();
+}
+
+function handleTouchEnd(e) {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+  startCarouselTimer();
+}
+
+function handleSwipe() {
+  const swipeThreshold = 50; // minimum distance for swipe
+  const swipeDistance = touchStartX - touchEndX;
+
+  if (Math.abs(swipeDistance) > swipeThreshold) {
+    if (swipeDistance > 0) {
+      nextCarousel(); // swipe left -> next
+    } else {
+      prevCarousel(); // swipe right -> prev
+    }
+  }
+}
+
 if (prevCarouselBtn && nextCarouselBtn && carouselCards.length > 0) {
   prevCarouselBtn.addEventListener('click', () => { prevCarousel(); startCarouselTimer(); });
   nextCarouselBtn.addEventListener('click', () => { nextCarousel(); startCarouselTimer(); });
   startCarouselTimer();
+}
+
+// Add touch support for mobile
+if (carouselSlides) {
+  carouselSlides.addEventListener('touchstart', handleTouchStart, { passive: true });
+  carouselSlides.addEventListener('touchend', handleTouchEnd, { passive: true });
 }
 
 /* ─────────────────────────────────────────────
