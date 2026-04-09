@@ -414,7 +414,8 @@ a {
 
 .carousel-card {
   min-width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
+  min-height: auto;
   border-radius: calc(var(--radius) * 1.5);
   overflow: hidden;
   background: var(--secondary);
@@ -425,6 +426,13 @@ a {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+@media (min-width: 1024px) {
+  .carousel-card {
+    aspect-ratio: 16 / 10;
+    min-height: 34rem;
+  }
 }
 
 .carousel-control {
