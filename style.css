@@ -519,8 +519,9 @@ a {
   }
 
   .carousel-card {
-    aspect-ratio: unset;
-    height: 26rem;
+    aspect-ratio: 4 / 3;
+    height: auto;
+    max-height: 26rem;
   }
 
   .carousel-control {
