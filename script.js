@@ -52,75 +52,129 @@ slides[0].classList.add('active');
 dots[0].classList.add('active');
 startTimer();
 
-const carouselTrack = document.querySelector('.carousel-track');
-const carouselCards = document.querySelectorAll('.carousel-card');
-const prevCarouselBtn = document.querySelector('.carousel-control.prev');
-const nextCarouselBtn = document.querySelector('.carousel-control.next');
-const carouselSlides = document.querySelector('.carousel-slides');
-let carouselIndex = 0;
-let carouselTimer;
-let touchStartX = 0;
-let touchEndX = 0;
+/* ─────────────────────────────────────────────
+   FEATURED CAROUSEL
+───────────────────────────────────────────── */
+(function () {
+  const track       = document.querySelector('.carousel-track');
+  const cards       = document.querySelectorAll('.carousel-card');
+  const prevBtn     = document.querySelector('.carousel-control.prev');
+  const nextBtn     = document.querySelector('.carousel-control.next');
+  const viewport    = document.querySelector('.carousel-slides');
+  const dotsWrap    = document.querySelector('.carousel-dots');
+  const progressBar = document.querySelector('.carousel-progress-bar');
 
-function updateCarousel() {
-  if (!carouselTrack) return;
-  carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
-}
+  if (!track || cards.length === 0) return;
 
-function nextCarousel() {
-  carouselIndex = (carouselIndex + 1) % carouselCards.length;
-  updateCarousel();
-}
+  const AUTOPLAY_INTERVAL = 4000; // ms
+  let currentIndex = 0;
+  let autoplayTimer = null;
+  let progressTimer = null;
+  let touchStartX = 0;
+  let isPaused = false;
 
-function prevCarousel() {
-  carouselIndex = (carouselIndex - 1 + carouselCards.length) % carouselCards.length;
-  updateCarousel();
-}
-
-function startCarouselTimer() {
-  clearInterval(carouselTimer);
-  carouselTimer = setInterval(nextCarousel, 5000);
-}
-
-function stopCarouselTimer() {
-  clearInterval(carouselTimer);
-}
-
-function handleTouchStart(e) {
-  touchStartX = e.changedTouches[0].screenX;
-  stopCarouselTimer();
-}
-
-function handleTouchEnd(e) {
-  touchEndX = e.changedTouches[0].screenX;
-  handleSwipe();
-  startCarouselTimer();
-}
-
-function handleSwipe() {
-  const swipeThreshold = 50; // minimum distance for swipe
-  const swipeDistance = touchStartX - touchEndX;
-
-  if (Math.abs(swipeDistance) > swipeThreshold) {
-    if (swipeDistance > 0) {
-      nextCarousel(); // swipe left -> next
-    } else {
-      prevCarousel(); // swipe right -> prev
-    }
+  // ── Build dots ──────────────────────────────
+  if (dotsWrap) {
+    cards.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.className = 'carousel-dot';
+      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      dot.addEventListener('click', () => goTo(i, true));
+      dotsWrap.appendChild(dot);
+    });
   }
-}
 
-if (prevCarouselBtn && nextCarouselBtn && carouselCards.length > 0) {
-  prevCarouselBtn.addEventListener('click', () => { prevCarousel(); startCarouselTimer(); });
-  nextCarouselBtn.addEventListener('click', () => { nextCarousel(); startCarouselTimer(); });
-  startCarouselTimer();
-}
+  function getDots() {
+    return dotsWrap ? dotsWrap.querySelectorAll('.carousel-dot') : [];
+  }
 
-// Add touch support for mobile
-if (carouselSlides) {
-  carouselSlides.addEventListener('touchstart', handleTouchStart, { passive: true });
-  carouselSlides.addEventListener('touchend', handleTouchEnd, { passive: true });
-}
+  // ── Core: move to slide i ──────────────────
+  function goTo(i, resetTimer = true) {
+    currentIndex = (i + cards.length) % cards.length;
+
+    // Precise offset: use actual card width (no gap artefacts)
+    const cardWidth = cards[0].getBoundingClientRect().width;
+    track.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
+
+    // Update dots
+    const dots = getDots();
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === currentIndex));
+
+    if (resetTimer) restartAutoplay();
+  }
+
+  // ── Autoplay + progress bar ────────────────
+  function startProgressBar() {
+    if (!progressBar) return;
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '0%';
+    // Force reflow
+    void progressBar.offsetWidth;
+    progressBar.style.transition = `width ${AUTOPLAY_INTERVAL}ms linear`;
+    progressBar.style.width = '100%';
+  }
+
+  function stopProgressBar() {
+    if (!progressBar) return;
+    const computed = getComputedStyle(progressBar).width;
+    progressBar.style.transition = 'none';
+    progressBar.style.width = computed;
+  }
+
+  function restartAutoplay() {
+    clearInterval(autoplayTimer);
+    if (isPaused) return;
+    startProgressBar();
+    autoplayTimer = setInterval(() => goTo(currentIndex + 1, false), AUTOPLAY_INTERVAL);
+  }
+
+  function pauseAutoplay() {
+    isPaused = true;
+    clearInterval(autoplayTimer);
+    stopProgressBar();
+  }
+
+  function resumeAutoplay() {
+    isPaused = false;
+    restartAutoplay();
+  }
+
+  // ── Controls ───────────────────────────────
+  prevBtn && prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+  nextBtn && nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+  // Pause on hover
+  if (viewport) {
+    viewport.addEventListener('mouseenter', pauseAutoplay);
+    viewport.addEventListener('mouseleave', resumeAutoplay);
+  }
+
+  // ── Touch / swipe ──────────────────────────
+  if (viewport) {
+    viewport.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].clientX;
+      pauseAutoplay();
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', (e) => {
+      const diff = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) {
+        goTo(diff > 0 ? currentIndex + 1 : currentIndex - 1);
+      }
+      resumeAutoplay();
+    }, { passive: true });
+  }
+
+  // ── Recalculate on resize (debounced) ───────
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => goTo(currentIndex, false), 150);
+  });
+
+  // ── Init ───────────────────────────────────
+  goTo(0);
+})();
 
 /* ─────────────────────────────────────────────
    SCROLL REVEAL (IntersectionObserver)

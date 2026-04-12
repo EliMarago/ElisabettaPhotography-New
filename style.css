@@ -149,7 +149,7 @@ a {
 
 .nav-logo-text .text-primary {
   font-size: 0.75rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.5em;
   text-transform: uppercase;
 }
 
@@ -404,18 +404,18 @@ a {
 .carousel-slides {
   overflow: hidden;
   flex: 1;
+  position: relative;
 }
 
 .carousel-track {
   display: flex;
-  gap: 1.5rem;
-  transition: transform 0.5s ease;
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .carousel-card {
   min-width: 100%;
-  aspect-ratio: 4 / 3;
-  min-height: auto;
+  flex-shrink: 0;
+  aspect-ratio: 8 / 3;
   border-radius: calc(var(--radius) * 1.5);
   overflow: hidden;
   background: var(--secondary);
@@ -427,11 +427,58 @@ a {
   object-fit: cover;
   display: block;
 }
+/* Progress bar */
+.carousel-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: hsla(0,0%,100%,0.12);
+  z-index: 3;
+  border-radius: 2px 2px 0 0;
+}
+
+.carousel-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.carousel-dot {
+  height: 3px;
+  width: 12px;
+  border-radius: 2px;
+  background: hsla(0,0%,55%,0.4);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.4s ease;
+}
+
+.carousel-dot.active {
+  width: 32px;
+  background: var(--primary);
+}
+
+/* Pause icon on hover */
+.carousel-slides:hover .carousel-progress-bar {
+  opacity: 0.5;
+}
 
 @media (min-width: 1024px) {
   .carousel-card {
     aspect-ratio: 16 / 10;
-    min-height: 34rem;
+    max-height: 40rem;
   }
 }
 
@@ -458,40 +505,43 @@ a {
 
 @media (max-width: 767px) {
   #carousel {
-    padding: 4rem 1.5rem;
+    padding: 4rem 0.75rem;
   }
 
   .carousel-wrap {
     position: relative;
+    gap: 0;
   }
 
   .carousel-slides {
     width: 100%;
+    border-radius: calc(var(--radius) * 1.5);
+  }
+
+  .carousel-card {
+    aspect-ratio: unset;
+    height: 26rem;
   }
 
   .carousel-control {
-    width: 3rem;
-    height: 3rem;
+    width: 2.75rem;
+    height: 2.75rem;
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     margin: 0;
     z-index: 2;
-    background: hsla(0, 0%, 0%, 0.35);
+    background: hsla(0, 0%, 0%, 0.40);
     border-color: transparent;
     color: var(--fg);
   }
 
   .carousel-control.prev {
-    left: 0.75rem;
+    left: 0.6rem;
   }
 
   .carousel-control.next {
-    right: 0.75rem;
-  }
-
-  .carousel-card img {
-    height: 22rem;
+    right: 0.6rem;
   }
 }
 

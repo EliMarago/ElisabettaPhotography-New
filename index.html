@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FOTO. — Portfolio Fotografico</title>
   <meta name="description"
-    content="Portfolio fotografico professionale. Ritratti, paesaggi e fotografia urbana con oltre 10 anni di esperienza." />
-  <link rel="icon" href="../public/favicon.ico" />
+    content="Portfolio fotografico professionale. Ritratti, paesaggi e fotografia paesaggistica." />
+  <link rel="icon" href="assets/logo-icon.jpg" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -76,7 +76,6 @@
 
     <!-- Text content -->
     <div class="hero-content">
-      <p class="hero-eyebrow">Portfolio Fotografico</p>
       <h1 class="hero-title">
         Cattura la<br />
         <span class="text-gradient">Luce</span>
@@ -156,6 +155,10 @@
     <div class="carousel-wrap reveal">
       <button class="carousel-control prev" aria-label="Slide precedente">‹</button>
       <div class="carousel-slides">
+        <!-- Progress bar -->
+        <div class="carousel-progress">
+          <div class="carousel-progress-bar"></div>
+        </div>
         <div class="carousel-track">
           <div class="carousel-card">
             <img src="assets/IMG_9934.JPEG" alt="Architettura" loading="lazy" />
@@ -166,10 +169,16 @@
           <div class="carousel-card">
             <img src="assets/gallery-5.jpg" alt="Macro" loading="lazy" />
           </div>
+          <div class="carousel-card">
+            <img src="assets/IMG_9826.JPG" alt="Macro" loading="lazy" />
+          </div>
         </div>
       </div>
       <button class="carousel-control next" aria-label="Slide successivo">›</button>
     </div>
+
+    <!-- Dots navigation -->
+    <div class="carousel-dots" role="tablist" aria-label="Slides"></div>
   </section>
 
   <!-- ════════════════════════════════════════
@@ -211,7 +220,7 @@
     <div class="contact-inner">
       <!-- Header -->
       <div class="contact-header reveal">
-        <p class="section-eyebrow" style="color: var(--primary);">Contatti</p>
+        <p class="section-eyebrow">Contatti</p>
         <h2 class="section-title">Lavoriamo insieme</h2>
         <p>
           Hai un progetto in mente? Scrivimi per discutere la tua idea e creare
@@ -298,5 +307,4 @@
 
   <script src="script.js"></script>
 </body>
-
 </html>
