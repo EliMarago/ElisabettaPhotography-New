@@ -53,128 +53,141 @@ dots[0].classList.add('active');
 startTimer();
 
 /* ─────────────────────────────────────────────
-   FEATURED CAROUSEL
+   FEATURED CAROUSEL – filmstrip infinite scroll
 ───────────────────────────────────────────── */
 (function () {
   const track       = document.querySelector('.carousel-track');
-  const cards       = document.querySelectorAll('.carousel-card');
+  const viewport    = document.querySelector('.carousel-slides');
   const prevBtn     = document.querySelector('.carousel-control.prev');
   const nextBtn     = document.querySelector('.carousel-control.next');
-  const viewport    = document.querySelector('.carousel-slides');
-  const dotsWrap    = document.querySelector('.carousel-dots');
   const progressBar = document.querySelector('.carousel-progress-bar');
+  const dotsWrap    = document.querySelector('.carousel-dots');
 
-  if (!track || cards.length === 0) return;
+  if (!track || !viewport) return;
 
-  const AUTOPLAY_INTERVAL = 4000; // ms
-  let currentIndex = 0;
-  let autoplayTimer = null;
-  let progressTimer = null;
+  // Hide dots (not meaningful for filmstrip)
+  if (dotsWrap) dotsWrap.hidden = true;
+
+  const INTERVAL = 3500;
+  let isPaused    = false;
+  let autoTimer   = null;
+  let offset      = 0;
   let touchStartX = 0;
-  let isPaused = false;
+  let originalW   = 0; // width of original cards (before clone)
 
-  // ── Build dots ──────────────────────────────
-  if (dotsWrap) {
-    cards.forEach((_, i) => {
-      const dot = document.createElement('button');
-      dot.className = 'carousel-dot';
-      dot.setAttribute('aria-label', `Slide ${i + 1}`);
-      dot.addEventListener('click', () => goTo(i, true));
-      dotsWrap.appendChild(dot);
-    });
+  // ── Clone cards for seamless infinite loop
+  function setupClones() {
+    const originals = [...track.children];
+    // Capture width before cloning
+    originalW = track.scrollWidth;
+    originals.forEach(c => track.appendChild(c.cloneNode(true)));
   }
 
-  function getDots() {
-    return dotsWrap ? dotsWrap.querySelectorAll('.carousel-dot') : [];
+  // ── How many px to scroll per step
+  function step() {
+    return Math.max(180, viewport.clientWidth * 0.5);
   }
 
-  // ── Core: move to slide i ──────────────────
-  function goTo(i, resetTimer = true) {
-    currentIndex = (i + cards.length) % cards.length;
-
-    // Precise offset: use actual card width (no gap artefacts)
-    const cardWidth = cards[0].getBoundingClientRect().width;
-    track.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
-
-    // Update dots
-    const dots = getDots();
-    dots.forEach((d, idx) => d.classList.toggle('active', idx === currentIndex));
-
+  // ── Move track to given offset (px), with optional seamless loop reset
+  function scrollTo(newOffset, resetTimer = true) {
+    offset = newOffset;
+    track.style.transform = `translateX(-${offset}px)`;
     if (resetTimer) restartAutoplay();
   }
 
-  // ── Autoplay + progress bar ────────────────
-  function startProgressBar() {
+  // After each CSS transition, snap back if we've gone past the clone boundary
+  track.addEventListener('transitionend', () => {
+    if (!originalW) return;
+    if (offset >= originalW) {
+      track.style.transition = 'none';
+      offset -= originalW;
+      track.style.transform = `translateX(-${offset}px)`;
+      void track.offsetWidth; // force reflow
+      track.style.transition = '';
+    } else if (offset < 0) {
+      track.style.transition = 'none';
+      offset += originalW;
+      track.style.transform = `translateX(-${offset}px)`;
+      void track.offsetWidth;
+      track.style.transition = '';
+    }
+  });
+
+  // ── Progress bar
+  function startBar() {
     if (!progressBar) return;
     progressBar.style.transition = 'none';
     progressBar.style.width = '0%';
-    // Force reflow
     void progressBar.offsetWidth;
-    progressBar.style.transition = `width ${AUTOPLAY_INTERVAL}ms linear`;
+    progressBar.style.transition = `width ${INTERVAL}ms linear`;
     progressBar.style.width = '100%';
   }
 
-  function stopProgressBar() {
+  function stopBar() {
     if (!progressBar) return;
-    const computed = getComputedStyle(progressBar).width;
+    const w = getComputedStyle(progressBar).width;
     progressBar.style.transition = 'none';
-    progressBar.style.width = computed;
+    progressBar.style.width = w;
   }
 
   function restartAutoplay() {
-    clearInterval(autoplayTimer);
+    clearInterval(autoTimer);
     if (isPaused) return;
-    startProgressBar();
-    autoplayTimer = setInterval(() => goTo(currentIndex + 1, false), AUTOPLAY_INTERVAL);
+    startBar();
+    autoTimer = setInterval(() => scrollTo(offset + step(), false), INTERVAL);
   }
 
-  function pauseAutoplay() {
-    isPaused = true;
-    clearInterval(autoplayTimer);
-    stopProgressBar();
-  }
+  function pause()  { isPaused = true;  clearInterval(autoTimer); stopBar(); }
+  function resume() { isPaused = false; restartAutoplay(); }
 
-  function resumeAutoplay() {
-    isPaused = false;
-    restartAutoplay();
-  }
+  // ── Buttons
+  prevBtn && prevBtn.addEventListener('click', () => scrollTo(offset - step()));
+  nextBtn && nextBtn.addEventListener('click', () => scrollTo(offset + step()));
 
-  // ── Controls ───────────────────────────────
-  prevBtn && prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
-  nextBtn && nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+  // ── Hover pause
+  viewport.addEventListener('mouseenter', pause);
+  viewport.addEventListener('mouseleave', resume);
 
-  // Pause on hover
-  if (viewport) {
-    viewport.addEventListener('mouseenter', pauseAutoplay);
-    viewport.addEventListener('mouseleave', resumeAutoplay);
-  }
+  // ── Touch / swipe
+  viewport.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].clientX;
+    pause();
+  }, { passive: true });
 
-  // ── Touch / swipe ──────────────────────────
-  if (viewport) {
-    viewport.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].clientX;
-      pauseAutoplay();
-    }, { passive: true });
+  viewport.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) scrollTo(offset + (diff > 0 ? step() : -step()));
+    resume();
+  }, { passive: true });
 
-    viewport.addEventListener('touchend', (e) => {
-      const diff = touchStartX - e.changedTouches[0].clientX;
-      if (Math.abs(diff) > 40) {
-        goTo(diff > 0 ? currentIndex + 1 : currentIndex - 1);
-      }
-      resumeAutoplay();
-    }, { passive: true });
-  }
-
-  // ── Recalculate on resize (debounced) ───────
-  let resizeTimeout;
+  // ── Resize: recalculate (offset keeps position, originalW recalculates)
+  let resizeTimer;
   window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => goTo(currentIndex, false), 150);
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      // Recalculate originalW based on half of total track width
+      originalW = track.scrollWidth / 2;
+      scrollTo(offset, false);
+    }, 150);
   });
 
-  // ── Init ───────────────────────────────────
-  goTo(0);
+  // ── Init: wait for images so widths are accurate
+  function init() {
+    setupClones();
+    scrollTo(0);
+  }
+
+  const imgs = track.querySelectorAll('img');
+  let loaded = 0;
+  if (imgs.length === 0) {
+    init();
+  } else {
+    function checkDone() { if (++loaded >= imgs.length) init(); }
+    imgs.forEach(img => img.complete ? checkDone() : img.addEventListener('load', checkDone));
+    setTimeout(init, 800); // fallback
+  }
 })();
+
 
 /* ─────────────────────────────────────────────
    SCROLL REVEAL (IntersectionObserver)
@@ -218,7 +231,7 @@ const form    = document.getElementById('contact-form');
 const btnText = document.getElementById('btn-text');
 const btnSend = document.getElementById('btn-send');
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name    = form.name.value.trim();
   const email   = form.email.value.trim();
@@ -232,10 +245,24 @@ form.addEventListener('submit', (e) => {
   btnSend.disabled = true;
   btnText.textContent = 'Invio in corso…';
 
-  setTimeout(() => {
+  try {
+    const formData = new FormData(form);
+    const res = await fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(formData).toString(),
+    });
+
+    if (res.ok) {
+      form.reset();
+      showToast('Messaggio inviato!', 'Ti risponderò al più presto.', 'success');
+    } else {
+      showToast('Errore nell\'invio', 'Riprova tra qualche istante.', 'error');
+    }
+  } catch {
+    showToast('Errore di rete', 'Controlla la connessione e riprova.', 'error');
+  } finally {
     btnSend.disabled = false;
     btnText.textContent = 'Invia messaggio';
-    form.reset();
-    showToast('Messaggio inviato!', 'Ti risponderò al più presto.', 'success');
-  }, 1200);
+  }
 });
