@@ -266,3 +266,30 @@ form.addEventListener('submit', async (e) => {
     btnText.textContent = 'Invia messaggio';
   }
 });
+
+/* ─────────────────────────────────────────────
+   COOKIE POPUP
+───────────────────────────────────────────── */
+const cookiePopup = document.getElementById('cookie-popup');
+const acceptBtn = document.getElementById('accept-cookies');
+const declineBtn = document.getElementById('decline-cookies');
+
+// Check if cookies are already accepted
+if (!localStorage.getItem('cookiesAccepted')) {
+  // Show popup after a short delay
+  setTimeout(() => {
+    cookiePopup.classList.add('show');
+  }, 1000);
+}
+
+acceptBtn.addEventListener('click', () => {
+  localStorage.setItem('cookiesAccepted', 'true');
+  cookiePopup.classList.remove('show');
+  showToast('Cookie accettati', 'Grazie per aver accettato i cookie.', 'success');
+});
+
+declineBtn.addEventListener('click', () => {
+  localStorage.setItem('cookiesAccepted', 'false');
+  cookiePopup.classList.remove('show');
+  showToast('Cookie rifiutati', 'Hai rifiutato i cookie. Alcune funzionalità potrebbero non essere disponibili.', 'error');
+});
